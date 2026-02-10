@@ -1,3 +1,5 @@
+#include <SDL3/SDL_keycode.h>
+#include <stdbool.h>
 #define SDL_MAIN_USE_CALLBACKS
 
 #include <SDL3/SDL_rect.h>
@@ -21,6 +23,8 @@ SDL_Texture *ptexture;
 Agent agents[MAX_AGENTS];
 int agent_count = 0;
 
+int app_paused = 0;
+
 void handle_event_agents(SDL_Event *event) {
     for (int i = 0; i < agent_count; i++) {
         agents[i].handle_events(event, agents[i].state);
@@ -37,6 +41,23 @@ void update_agents() {
     for (int i = 0; i < agent_count; i++) {
         agents[i].update(agents[i].state);
     }
+}
+
+void create_agents() {
+    for (int i = 0; i < MAX_AGENTS; i++) {
+        agents[i] = init_agent();
+    }
+    agent_count = MAX_AGENTS; 
+}
+
+void init_app() {
+    SDL_SetRenderTarget(prenderer, ptexture);
+    SDL_SetRenderDrawColor(prenderer, 45, 45, 48, 255);
+    SDL_RenderClear(prenderer);
+    SDL_SetRenderTarget(prenderer, 0);
+
+    app_paused = 0;
+    create_agents();
 }
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
@@ -65,15 +86,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
         return SDL_APP_FAILURE;
     }
 
-    SDL_SetRenderTarget(prenderer, ptexture);
-    SDL_SetRenderDrawColor(prenderer, 45, 45, 48, 255);
-    SDL_RenderClear(prenderer);
-    SDL_SetRenderTarget(prenderer, 0);
-
-    for (int i = 0; i < MAX_AGENTS; i++) {
-        agents[i] = init_agent();
-    }
-    agent_count = MAX_AGENTS; 
+    init_app();
 
     return SDL_APP_CONTINUE;
 }
@@ -92,7 +105,9 @@ void render() {
 }
 
 SDL_AppResult SDL_AppIterate(void *appstate) {
-    update();
+    if (!app_paused) {
+        update();
+    }
     render();
     SDL_Delay(16);
     return SDL_APP_CONTINUE;
@@ -101,6 +116,14 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     if (event->type == SDL_EVENT_QUIT) {
         return SDL_APP_SUCCESS;
+    }
+    if (event->type == SDL_EVENT_KEY_DOWN) {
+        if (event->key.key == SDLK_SPACE) {
+            app_paused = !app_paused;
+        }
+        if (event->key.key == SDLK_R) {
+            init_app();
+        }
     }
     handle_event_agents(event);
     return SDL_APP_CONTINUE;
