@@ -8,6 +8,8 @@
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_timer.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "main.h"
 #include "agent.h"
@@ -21,23 +23,25 @@ int agent_count = 0;
 
 void handle_event_agents(SDL_Event *event) {
     for (int i = 0; i < agent_count; i++) {
-        agents[i].handle_events(event);
+        agents[i].handle_events(event, agents[i].state);
     }
 }
 
 void render_agents() {
     for (int i = 0; i < agent_count; i++) {
-        agents[i].render(prenderer);
+        agents[i].render(prenderer, agents[i].state);
     }
 }
 
 void update_agents() {
     for (int i = 0; i < agent_count; i++) {
-        agents[i].update();
+        agents[i].update(agents[i].state);
     }
 }
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
+    srand(time(NULL));
+
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("Error initializing SDL: %s", SDL_GetError());
         return SDL_APP_FAILURE;
@@ -66,7 +70,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     SDL_RenderClear(prenderer);
     SDL_SetRenderTarget(prenderer, 0);
 
-    agents[agent_count++] = init_agent();
+    for (int i = 0; i < MAX_AGENTS; i++) {
+        agents[i] = init_agent();
+    }
+    agent_count = MAX_AGENTS; 
 
     return SDL_APP_CONTINUE;
 }
@@ -87,7 +94,7 @@ void render() {
 SDL_AppResult SDL_AppIterate(void *appstate) {
     update();
     render();
-    SDL_Delay(33);
+    SDL_Delay(16);
     return SDL_APP_CONTINUE;
 }
 
